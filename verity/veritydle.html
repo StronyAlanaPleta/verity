@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Veritydle</title>
+
+<style>
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    min-height:100vh;
+    padding:20px;
+    background:#121213;
+    color:#fff;
+    font-family:Segoe UI,Tahoma,Geneva,Verdana,sans-serif;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+}
+
+h1{
+    margin:0 0 5px;
+    font-size:40px;
+    letter-spacing:3px;
+}
+
+.subtitle{
+    margin:0 0 15px;
+    color:#aaa;
+    text-align:center;
+}
+
+.stats{
+    display:flex;
+    justify-content:center;
+    gap:25px;
+    margin-bottom:8px;
+    font-size:15px;
+    font-weight:bold;
+    flex-wrap:wrap;
+}
+
+.stat span{
+    color:#ffcc00;
+}
+
+#difficulty{
+    color:#999;
+    font-size:14px;
+    margin-bottom:15px;
+    text-align:center;
+}
+
+#message{
+    min-height:30px;
+    margin-bottom:15px;
+    font-weight:bold;
+    color:#ffcc00;
+    text-align:center;
+    max-width:700px;
+}
+
+.board{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    margin-bottom:20px;
+}
+
+.row{
+    display:flex;
+    gap:8px;
+}
+
+.tile{
+    width:110px;
+    height:70px;
+    border:2px solid #3a3a3c;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:#121213;
+    border-radius:4px;
+    transition:.2s;
+    padding:4px;
+    overflow:hidden;
+}
+
+.tile img{
+    width:100%;
+    height:100%;
+    object-fit:contain;
+    border-radius:3px;
+}
+
+.tile.green{
+    background:#538d4e;
+    border-color:#538d4e;
+}
+
+.tile.yellow{
+    background:#b59f3b;
+    border-color:#b59f3b;
+}
+
+.tile.gray{
+    background:#3a3a3c;
+    border-color:#3a3a3c;
+}
+
+.keyboard{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    justify-content:center;
+    max-width:700px;
+    margin-bottom:15px;
+}
+
+.key-btn{
+    width:110px;
+    height:65px;
+    background:#818384;
+    color:#fff;
+    border:0;
+    padding:5px;
+    border-radius:4px;
+    cursor:pointer;
+    transition:.2s;
+}
+
+.key-btn:hover{
+    background:#a0a2a3;
+    transform:translateY(-1px);
+}
+
+.key-btn:active{
+    transform:translateY(1px);
+}
+
+.key-btn img{
+    width:100%;
+    height:100%;
+    object-fit:contain;
+    border-radius:3px;
+}
+
+.actions{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+}
+
+.action-btn{
+    background:#538d4e;
+    color:#fff;
+    border:0;
+    padding:10px 20px;
+    font-size:14px;
+    font-weight:bold;
+    border-radius:4px;
+    cursor:pointer;
+}
+
+.action-btn:hover{
+    filter:brightness(1.12);
+}
+
+.delete-btn{
+    background:#d32f2f;
+}
+
+.next-btn{
+    background:#b59f3b;
+}
+
+.restart-btn{
+    background:#536dfe;
+}
+
+.endless{
+    color:#ffcc00;
+    font-weight:bold;
+    letter-spacing:1px;
+}
+
+.hidden{
+    display:none!important;
+}
+
+@media(max-width:600px){
+
+    body{
+        padding:12px;
+    }
+
+    h1{
+        font-size:32px;
+    }
+
+    .tile{
+        width:65px;
+        height:55px;
+    }
+
+    .row{
+        gap:5px;
+    }
+
+    .board{
+        gap:5px;
+    }
+
+    .key-btn{
+        width:65px;
+        height:50px;
+        padding:4px;
+    }
+
+    .stats{
+        gap:12px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<h1>VERITYDLE</h1>
+
+<p class="subtitle">
+    Odgadnij sekwencję 5 wariantów!
+</p>
+
+<div class="stats">
+
+    <div class="stat">
+        LVL: <span id="level">1</span>
+    </div>
+
+    <div class="stat">
+        Punkty: <span id="score">0</span>
+    </div>
+
+    <div class="stat">
+        Próba: <span id="attempt">1</span>/7
+    </div>
+
+</div>
+
+<div id="difficulty">
+    Poziom trudności: 1 — Bardzo łatwy
+</div>
+
+<div id="message"></div>
+
+<div class="board" id="board"></div>
+
+<div class="keyboard" id="keyboard"></div>
+
+<div class="actions">
+
+    <button
+        class="action-btn delete-btn"
+        id="deleteButton">
+        Cofnij
+    </button>
+
+    <button
+        class="action-btn"
+        id="submitButton">
+        Zatwierdź
+    </button>
+
+    <button
+        class="action-btn next-btn hidden"
+        id="nextButton">
+        Następny poziom
+    </button>
+
+    <button
+        class="action-btn restart-btn hidden"
+        id="restartButton">
+        Zagraj ponownie
+    </button>
+
+</div>
+
+<script>
+"use strict";
+
+const variants = [
+    "verity",
+    "falsity",
+    "cruelty",
+    "obesity",
+    "mogity",
+    "lovity",
+    "freakity",
+    "nigity",
+    "rapity"
+];
+
+const MAX_LEVEL = 7;
+const MAX_ATTEMPTS = 7;
+const SEQUENCE_LENGTH = 5;
+
+let level = 1;
+let attempt = 0;
+let score = 0;
+let target = [];
+let currentGuess = [];
+let gameOver = false;
+let endlessMode = false;
+let endlessRound = 0;
+
+const levelDescriptions = {
+    1:"Bardzo łatwy",
+    2:"Łatwy",
+    3:"Normalny",
+    4:"Trudny",
+    5:"Bardzo trudny",
+    6:"Ekspert",
+    7:"Mistrz"
+};
+
+function getAvailableVariants(){
+
+    if(endlessMode){
+        return variants.slice();
+    }
+
+    return variants.slice(0, level);
+}
+
+function generateTarget(){
+
+    const available = getAvailableVariants();
+
+    target = [];
+
+    for(let i=0;i<SEQUENCE_LENGTH;i++){
+
+        const randomIndex =
+            Math.floor(Math.random() * available.length);
+
+        target.push(available[randomIndex]);
+    }
+}
+
+function calculatePoints(){
+
+    const attemptPoints = [
+        100,
+        85,
+        70,
+        55,
+        40,
+        25,
+        10
+    ];
+
+    const basePoints = attemptPoints[attempt];
+
+    if(endlessMode){
+        return basePoints * endlessRound;
+    }
+
+    return basePoints * level;
+}
+
+function updateDifficulty(){
+
+    const difficulty =
+        document.getElementById("difficulty");
+
+    if(endlessMode){
+
+        difficulty.innerHTML =
+            '<span class="endless">♾️ ENDLESS MODE — RUN #' +
+            endlessRound +
+            ' — 9 wariantów</span>';
+
+        return;
+    }
+
+    difficulty.textContent =
+        "Poziom trudności: " +
+        level +
+        " — " +
+        levelDescriptions[level];
+}
+
+function updateStats(){
+
+    document.getElementById("level").textContent =
+        endlessMode
+            ? "∞ #" + endlessRound
+            : level + "/7";
+
+    document.getElementById("score").textContent =
+        score;
+
+    document.getElementById("attempt").textContent =
+        Math.min(
+            attempt + 1,
+            MAX_ATTEMPTS
+        );
+
+    updateDifficulty();
+}
+
+function createBoard(){
+
+    const board =
+        document.getElementById("board");
+
+    board.innerHTML = "";
+
+    for(let r=0;r<MAX_ATTEMPTS;r++){
+
+        const row =
+            document.createElement("div");
+
+        row.className = "row";
+
+        for(let c=0;c<SEQUENCE_LENGTH;c++){
+
+            const tile =
+                document.createElement("div");
+
+            tile.className = "tile";
+
+            tile.id =
+                "tile-" + r + "-" + c;
+
+            row.appendChild(tile);
+        }
+
+        board.appendChild(row);
+    }
+}
+
+function createKeyboard(){
+
+    const keyboard =
+        document.getElementById("keyboard");
+
+    keyboard.innerHTML = "";
+
+    getAvailableVariants().forEach(function(variant){
+
+        const button =
+            document.createElement("button");
+
+        button.className = "key-btn";
+
+        const image =
+            document.createElement("img");
+
+        image.src =
+            "verity variant/" +
+            variant +
+            ".png";
+
+        image.alt = variant;
+
+        button.appendChild(image);
+
+        button.addEventListener(
+            "click",
+            function(){
+                selectVariant(variant);
+            }
+        );
+
+        keyboard.appendChild(button);
+    });
+}
+
+function initGame(){
+
+    attempt = 0;
+    currentGuess = [];
+    gameOver = false;
+
+    generateTarget();
+
+    createBoard();
+
+    createKeyboard();
+
+    updateStats();
+
+    document.getElementById(
+        "message"
+    ).textContent = "";
+
+    document.getElementById(
+        "nextButton"
+    ).classList.add("hidden");
+
+    document.getElementById(
+        "restartButton"
+    ).classList.add("hidden");
+
+    document.getElementById(
+        "submitButton"
+    ).classList.remove("hidden");
+
+    document.getElementById(
+        "deleteButton"
+    ).classList.remove("hidden");
+}
+
+function selectVariant(variant){
+
+    if(gameOver){
+        return;
+    }
+
+    if(currentGuess.length < SEQUENCE_LENGTH){
+
+        currentGuess.push(variant);
+
+        updateCurrentRow();
+    }
+}
+
+function updateCurrentRow(){
+
+    for(let c=0;c<SEQUENCE_LENGTH;c++){
+
+        const tile =
+            document.getElementById(
+                "tile-" +
+                attempt +
+                "-" +
+                c
+            );
+
+        if(!tile){
+            continue;
+        }
+
+        tile.innerHTML = "";
+
+        if(currentGuess[c]){
+
+            const image =
+                document.createElement("img");
+
+            image.src =
+                "verity variant/" +
+                currentGuess[c] +
+                ".png";
+
+            image.alt =
+                currentGuess[c];
+
+            tile.appendChild(image);
+        }
+    }
+}
+
+function deleteVariant(){
+
+    if(gameOver){
+        return;
+    }
+
+    if(currentGuess.length > 0){
+
+        currentGuess.pop();
+
+        updateCurrentRow();
+    }
+}
+
+function checkGuess(guess){
+
+    const result =
+        new Array(SEQUENCE_LENGTH)
+        .fill("gray");
+
+    const targetUsed =
+        new Array(SEQUENCE_LENGTH)
+        .fill(false);
+
+    const guessUsed =
+        new Array(SEQUENCE_LENGTH)
+        .fill(false);
+
+    for(let i=0;i<SEQUENCE_LENGTH;i++){
+
+        if(guess[i] === target[i]){
+
+            result[i] = "green";
+
+            targetUsed[i] = true;
+
+            guessUsed[i] = true;
+        }
+    }
+
+    for(let i=0;i<SEQUENCE_LENGTH;i++){
+
+        if(guessUsed[i]){
+            continue;
+        }
+
+        for(let j=0;j<SEQUENCE_LENGTH;j++){
+
+            if(
+                !targetUsed[j] &&
+                guess[i] === target[j]
+            ){
+
+                result[i] = "yellow";
+
+                targetUsed[j] = true;
+
+                break;
+            }
+        }
+    }
+
+    return result;
+}
+
+function showResult(result){
+
+    for(let i=0;i<SEQUENCE_LENGTH;i++){
+
+        const tile =
+            document.getElementById(
+                "tile-" +
+                attempt +
+                "-" +
+                i
+            );
+
+        if(tile){
+
+            tile.classList.add(
+                result[i]
+            );
+        }
+    }
+}
+
+function submitGuess(){
+
+    if(gameOver){
+        return;
+    }
+
+    if(
+        currentGuess.length !==
+        SEQUENCE_LENGTH
+    ){
+
+        document.getElementById(
+            "message"
+        ).textContent =
+            "Musisz wybrać 5 wariantów!";
+
+        return;
+    }
+
+    document.getElementById(
+        "message"
+    ).textContent = "";
+
+    const guess =
+        currentGuess.slice();
+
+    const result =
+        checkGuess(guess);
+
+    showResult(result);
+
+    const won =
+        guess.every(function(value,index){
+
+            return value === target[index];
+
+        });
+
+    if(won){
+
+        const earned =
+            calculatePoints();
+
+        score += earned;
+
+        gameOver = true;
+
+        updateStats();
+
+        if(
+            !endlessMode &&
+            level === MAX_LEVEL
+        ){
+
+            document.getElementById(
+                "message"
+            ).textContent =
+                "🏆 LVL 7 UKOŃCZONY! +" +
+                earned +
+                " pkt | Wynik: " +
+                score +
+                " pkt";
+
+            document.getElementById(
+                "nextButton"
+            ).classList.remove("hidden");
+
+            document.getElementById(
+                "submitButton"
+            ).classList.add("hidden");
+
+            document.getElementById(
+                "deleteButton"
+            ).classList.add("hidden");
+
+            return;
+        }
+
+        if(!endlessMode){
+
+            document.getElementById(
+                "message"
+            ).textContent =
+                "🎉 LVL " +
+                level +
+                " ukończony! +" +
+                earned +
+                " pkt | Wynik: " +
+                score +
+                " pkt";
+
+            document.getElementById(
+                "nextButton"
+            ).classList.remove("hidden");
+
+            document.getElementById(
+                "submitButton"
+            ).classList.add("hidden");
+
+            document.getElementById(
+                "deleteButton"
+            ).classList.add("hidden");
+
+            return;
+        }
+
+        document.getElementById(
+            "message"
+        ).textContent =
+            "♾️ ENDLESS #" +
+            endlessRound +
+            " ukończony! +" +
+            earned +
+            " pkt | Wynik: " +
+            score +
+            " pkt";
+
+        document.getElementById(
+            "nextButton"
+        ).classList.remove("hidden");
+
+        document.getElementById(
+            "submitButton"
+        ).classList.add("hidden");
+
+        document.getElementById(
+            "deleteButton"
+        ).classList.add("hidden");
+
+        return;
+    }
+
+    attempt++;
+
+    currentGuess = [];
+
+    if(attempt >= MAX_ATTEMPTS){
+
+        gameOver = true;
+
+        document.getElementById(
+            "message"
+        ).textContent =
+            "Koniec prób! Sekwencja: " +
+            target.join(", ") +
+            " | Wynik: " +
+            score +
+            " pkt";
+
+        document.getElementById(
+            "restartButton"
+        ).classList.remove("hidden");
+
+        document.getElementById(
+            "submitButton"
+        ).classList.add("hidden");
+
+        document.getElementById(
+            "deleteButton"
+        ).classList.add("hidden");
+
+        return;
+    }
+
+    updateStats();
+}
+
+function nextLevel(){
+
+    if(
+        !endlessMode &&
+        level < MAX_LEVEL
+    ){
+
+        level++;
+
+        initGame();
+
+        return;
+    }
+
+    if(
+        !endlessMode &&
+        level === MAX_LEVEL
+    ){
+
+        endlessMode = true;
+
+        endlessRound = 1;
+
+        initGame();
+
+        return;
+    }
+
+    if(endlessMode){
+
+        endlessRound++;
+
+        initGame();
+    }
+}
+
+function restartGame(){
+
+    level = 1;
+
+    attempt = 0;
+
+    score = 0;
+
+    target = [];
+
+    currentGuess = [];
+
+    gameOver = false;
+
+    endlessMode = false;
+
+    endlessRound = 0;
+
+    initGame();
+}
+
+document.getElementById(
+    "deleteButton"
+).addEventListener(
+    "click",
+    deleteVariant
+);
+
+document.getElementById(
+    "submitButton"
+).addEventListener(
+    "click",
+    submitGuess
+);
+
+document.getElementById(
+    "nextButton"
+).addEventListener(
+    "click",
+    nextLevel
+);
+
+document.getElementById(
+    "restartButton"
+).addEventListener(
+    "click",
+    restartGame
+);
+
+document.addEventListener(
+    "keydown",
+    function(event){
+
+        if(gameOver){
+            return;
+        }
+
+        if(event.key === "Backspace"){
+
+            event.preventDefault();
+
+            deleteVariant();
+
+            return;
+        }
+
+        if(event.key === "Enter"){
+
+            event.preventDefault();
+
+            submitGuess();
+
+            return;
+        }
+
+        const typed =
+            event.key.toLowerCase();
+
+        const variant =
+            getAvailableVariants().find(
+                function(item){
+
+                    return item.toLowerCase()
+                        === typed;
+                }
+            );
+
+        if(variant){
+
+            selectVariant(variant);
+        }
+    }
+);
+
+initGame();
+</script>
+
+</body>
+</html>
